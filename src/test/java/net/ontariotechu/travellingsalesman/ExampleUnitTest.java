@@ -1,4 +1,4 @@
-package net.ontariotechu.travelingsalesman;
+package net.ontariotechu.travellingsalesman;
 
 import org.junit.Test;
 
