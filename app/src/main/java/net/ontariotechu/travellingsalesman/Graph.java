@@ -1,17 +1,21 @@
 package net.ontariotechu.travellingsalesman;
 
+import android.content.res.Resources;
+
 public class Graph {
 
     City cities[];
     float distances[][];
     int size;
     int curSize;
+    Resources res;
 
-    public Graph (int n) {
+    public Graph (int n, Resources res) {
         size = n;
         curSize = 0;
         cities = new City[n];
         distances = new float[n][n];
+        this.res = res;
 
     }
 
@@ -25,12 +29,12 @@ public class Graph {
         }
     }
 
-    void addCity (int x, int y) {
+    void addCity (int x, int y, Resources res) {
         if (curSize == size) {
             System.out.println("City @ (" + x + ", " + y + ") not added.");
             return;
         }
-        cities[curSize++] = new City(x, y);
+        cities[curSize++] = new City(x, y, res);
     }
 
 
