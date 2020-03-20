@@ -33,6 +33,7 @@ public class Graph {
         cities[curSize++] = new City(x, y);
     }
 
+
     void test_print () {
         for (int i = 0; i < curSize; i++) {
             for (int j = 0; j < curSize; j++) {
