@@ -5,6 +5,11 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.view.SurfaceView;
 
+import androidx.core.content.res.TypedArrayUtils;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Random;
 
 public class GameView extends SurfaceView implements Runnable {
@@ -16,6 +21,11 @@ public class GameView extends SurfaceView implements Runnable {
     private Graph graph;
     private Random random = new Random();
     private Paint paint;
+    //private int initial, end, current, nextNode;
+    private float bestDistance = Float.MAX_VALUE;
+    private int[] path, bestPath;
+    private boolean finished = false;
+
 
     public GameView(GameActivity activity, int screenX, int screenY, int numNodes) {
         super(activity);
@@ -25,6 +35,8 @@ public class GameView extends SurfaceView implements Runnable {
         this.nodes = numNodes;
 
         paint = new Paint();
+
+        path = new int[numNodes];
 
         //adjust size of sprites based on screen size using an arbitrary size as a baseline
         screenRatioX = screenX / 1920f;
@@ -36,7 +48,13 @@ public class GameView extends SurfaceView implements Runnable {
             int x = random.nextInt(screenX); //number from 0 - screenX
             int y = random.nextInt(screenY);
             graph.addCity(x, y);
+            path[i] = i;
         }
+
+        graph.calculateMatrix();
+
+        //node furthest left is initial and furthest right is end
+        setInitial();
 
     }
 
@@ -52,6 +70,74 @@ public class GameView extends SurfaceView implements Runnable {
 
     public void update(){
 
+        /***Find all permutations algorithm***/
+
+        //find largest i so p[i] < p[i+1]
+        //if no such x, we are finished
+        int largestI  = -1;
+        for(int i = 0; i < path.length -1; i++){
+            if(path[i] < path[i+1]){
+                largestI = i;
+            }
+        }
+
+        if(largestI == -1){
+            finished = true;
+            return;
+        }
+
+        //find largest j so p[i] < p[j]
+        int largestJ = -1;
+        for(int j = 0; j < path.length; j++){
+            if(path[largestI] < path[j]){
+                largestJ = j;
+            }
+        }
+
+        //swap p[i] and p[j]
+        int temp = path[largestI];
+        path[largestI] = path[largestJ];
+        path[largestJ] = temp;
+
+        //reverse p[i+1 .. n]
+        int[] startArray = Arrays.copyOfRange(path, 0, largestI + 1);
+        int[] endArray = Arrays.copyOfRange(path, largestI + 1, path.length);
+
+        endArray = reverse(endArray);
+
+        //add endArray to path
+        path = Arrays.copyOf(startArray, startArray.length + endArray.length);
+        System.arraycopy(endArray, 0, path, startArray.length, endArray.length);
+
+        System.out.println(Arrays.toString(path));
+
+        calculateDistanceOfPath();
+        /*
+        for (int i = 0; i < graph.cities.length; i++) {
+
+            if(!graph.cities[i].checked){ //check all unvisited nodes
+                //System.out.println(graph.distances[current][i]);
+                if(graph.distances[current][i] < currDistance){
+
+                    currDistance = graph.distances[current][i];
+                    nextNode = i;
+                    graph.cities[i].checked = true;
+
+                    return; //we only want to visit one node per frame
+                }
+            }
+        }
+
+        //if we reach here, all nodes have been visited
+        path.add(graph.cities[nextNode]);
+        graph.cities[current].visited = true;
+        current = nextNode;
+        currDistance = Float.MAX_VALUE;
+
+        if(current == end){
+            finished = true;
+            System.out.println("finished");
+        }*/
     }
 
     public void draw(){
@@ -70,7 +156,31 @@ public class GameView extends SurfaceView implements Runnable {
             for (City city : graph.cities) {
                 canvas.drawCircle(city.xPos, city.yPos, 20f, paint);
             }
+            City[] cities = graph.cities;
 
+            if(!finished){
+                //draw path that is being checked
+                paint.setColor(Color.WHITE);
+                paint.setStrokeWidth(3);
+
+                for(int i = 0; i < path.length-1; i++){
+                    //draw current path
+                    canvas.drawLine(cities[path[i]].xPos, cities[path[i]].yPos, cities[path[i+1]].xPos, cities[path[i+1]].yPos, paint);
+                }
+            }
+
+
+            //draw best path
+            paint.setStrokeWidth(10);
+            paint.setColor(Color.GREEN);
+            for(int i = 0; i < path.length-1; i++){
+                //draw current path
+                canvas.drawLine(cities[bestPath[i]].xPos, cities[bestPath[i]].yPos, cities[bestPath[i+1]].xPos, cities[bestPath[i+1]].yPos, paint);
+            }
+
+            if(finished){
+                pause();
+            }
             getHolder().unlockCanvasAndPost(canvas); //display canvas
         }
     }
@@ -78,10 +188,49 @@ public class GameView extends SurfaceView implements Runnable {
     public void sleep(){
         //1000 millis / 17 millis = 60fps
         try {
-            Thread.sleep(17);
+            Thread.sleep(333);
         }
         catch (InterruptedException e) {
             e.printStackTrace();
+        }
+    }
+
+    public void setInitial(){
+        int furthestLeft = Integer.MAX_VALUE;
+
+        for (int i = 0; i < graph.cities.length; i++) {
+            if(graph.cities[i].xPos < furthestLeft) {
+                furthestLeft = graph.cities[i].xPos;
+                //initial = i;
+            }
+        }
+
+        /*
+        current = initial;
+        path.add(graph.cities[current]);
+        //graph.cities[current].visited = true;*/
+    }
+
+    public int[] reverse(int[] data){
+        for(int i = 0; i < data.length / 2; i++)
+        {
+            int temp = data[i];
+            data[i] = data[data.length - i - 1];
+            data[data.length - i - 1] = temp;
+        }
+
+        return data;
+    }
+
+    public void calculateDistanceOfPath(){
+        float distance = 0;
+        for(int i = 0; i < path.length-1; i++){
+            distance += graph.distances[path[i]][path[i+1]];
+        }
+
+        if(distance < bestDistance){
+            bestDistance = distance;
+            bestPath = path;
         }
     }
 

@@ -2,14 +2,16 @@ package net.ontariotechu.travellingsalesman;
 
 public class City {
 
-    float xPos;
-    float yPos;
+    int xPos;
+    int yPos;
     boolean visited;
+
 
     public City (int x, int y) {
         xPos = x;
         yPos = y;
         visited = false;
+
     }
 
 }
