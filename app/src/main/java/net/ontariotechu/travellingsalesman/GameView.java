@@ -1,7 +1,10 @@
 package net.ontariotechu.travellingsalesman;
 
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.DashPathEffect;
 import android.graphics.Paint;
 import android.view.SurfaceView;
 
@@ -23,8 +26,9 @@ public class GameView extends SurfaceView implements Runnable {
     private Paint paint;
     //private int initial, end, current, nextNode;
     private float bestDistance = Float.MAX_VALUE;
-    private int[] path, bestPath;
-    private boolean finished = false;
+    private int[] path, bestPath = null;
+    private boolean finished = false, firstIteration = true;
+    Bitmap background, initial;
 
 
     public GameView(GameActivity activity, int screenX, int screenY, int numNodes) {
@@ -42,12 +46,16 @@ public class GameView extends SurfaceView implements Runnable {
         screenRatioX = screenX / 1920f;
         screenRatioY = screenY / 1080f ;
 
-        graph = new Graph(nodes);
+        background = BitmapFactory.decodeResource(getResources(), R.drawable.map);
+        //scale image to fullscreen
+        background = Bitmap.createScaledBitmap(background, screenX, screenY, false);
+
+        graph = new Graph(nodes, getResources());
 
         for(int i = 0; i < nodes; i++){
             int x = random.nextInt(screenX); //number from 0 - screenX
             int y = random.nextInt(screenY);
-            graph.addCity(x, y);
+            graph.addCity(x, y, getResources());
             path[i] = i;
         }
 
@@ -64,54 +72,59 @@ public class GameView extends SurfaceView implements Runnable {
         while(isPlaying){
             update();
             draw();
+            calculateDistanceOfPath();
             sleep();
         }
     }
 
     public void update(){
 
-        /***Find all permutations algorithm***/
+        if(!firstIteration) {
+            /***Find all permutations algorithm***/
 
-        //find largest i so p[i] < p[i+1]
-        //if no such x, we are finished
-        int largestI  = -1;
-        for(int i = 0; i < path.length -1; i++){
-            if(path[i] < path[i+1]){
-                largestI = i;
+            //find largest i so p[i] < p[i+1]
+            //if no such x, we are finished
+            int largestI = -1;
+            for (int i = 0; i < path.length - 1; i++) {
+                if (path[i] < path[i + 1]) {
+                    largestI = i;
+                }
             }
-        }
 
-        if(largestI == -1){
-            finished = true;
-            return;
-        }
-
-        //find largest j so p[i] < p[j]
-        int largestJ = -1;
-        for(int j = 0; j < path.length; j++){
-            if(path[largestI] < path[j]){
-                largestJ = j;
+            if (largestI == -1) {
+                finished = true;
+                return;
             }
+
+            //find largest j so p[i] < p[j]
+            int largestJ = -1;
+            for (int j = 0; j < path.length; j++) {
+                if (path[largestI] < path[j]) {
+                    largestJ = j;
+                }
+            }
+
+            //swap p[i] and p[j]
+            int temp = path[largestI];
+            path[largestI] = path[largestJ];
+            path[largestJ] = temp;
+
+            //reverse p[i+1 .. n]
+            int[] startArray = Arrays.copyOfRange(path, 0, largestI + 1);
+            int[] endArray = Arrays.copyOfRange(path, largestI + 1, path.length);
+
+            endArray = reverse(endArray);
+
+            //add endArray to path
+            path = Arrays.copyOf(startArray, startArray.length + endArray.length);
+            System.arraycopy(endArray, 0, path, startArray.length, endArray.length);
+
+            //System.out.println(Arrays.toString(path));
+
         }
-
-        //swap p[i] and p[j]
-        int temp = path[largestI];
-        path[largestI] = path[largestJ];
-        path[largestJ] = temp;
-
-        //reverse p[i+1 .. n]
-        int[] startArray = Arrays.copyOfRange(path, 0, largestI + 1);
-        int[] endArray = Arrays.copyOfRange(path, largestI + 1, path.length);
-
-        endArray = reverse(endArray);
-
-        //add endArray to path
-        path = Arrays.copyOf(startArray, startArray.length + endArray.length);
-        System.arraycopy(endArray, 0, path, startArray.length, endArray.length);
-
-        System.out.println(Arrays.toString(path));
-
-        calculateDistanceOfPath();
+        else{
+            firstIteration = false;
+        }
         /*
         for (int i = 0; i < graph.cities.length; i++) {
 
@@ -144,24 +157,29 @@ public class GameView extends SurfaceView implements Runnable {
         if(getHolder().getSurface().isValid()) {
             Canvas canvas = getHolder().lockCanvas(); //returns canvas being displayed on screen
 
-            paint.setColor(Color.BLACK);
-            paint.setStyle(Paint.Style.FILL);
+            //paint.setColor(Color.BLACK);
+            //paint.setStyle(Paint.Style.FILL);
+
             //draw background
-            canvas.drawRect(0, 0, screenX, screenY, paint);
+            //canvas.drawRect(0, 0, screenX, screenY, paint);
+            canvas.drawBitmap(background, 0, 0, paint);
 
 
             paint.setColor(Color.RED);
             paint.setStyle(Paint.Style.FILL);
 
             for (City city : graph.cities) {
-                canvas.drawCircle(city.xPos, city.yPos, 20f, paint);
+                //canvas.drawCircle(city.xPos, city.yPos, 20f, paint);
+                canvas.drawBitmap(city.img, city.xPos - city.width/2, city.yPos - city.width/2, paint);
             }
             City[] cities = graph.cities;
 
             if(!finished){
                 //draw path that is being checked
-                paint.setColor(Color.WHITE);
+                paint.setColor(Color.GREEN);
+                paint.setAlpha(150);
                 paint.setStrokeWidth(3);
+                paint.setPathEffect(null);
 
                 for(int i = 0; i < path.length-1; i++){
                     //draw current path
@@ -169,19 +187,23 @@ public class GameView extends SurfaceView implements Runnable {
                 }
             }
 
+            if(bestPath != null) {
+                //draw best path
+                paint.setStrokeWidth(15);
+                paint.setColor(Color.RED);
+                paint.setAlpha(255);
+                paint.setPathEffect(new DashPathEffect(new float[]{30, 20}, 0));
+                for (int i = 0; i < bestPath.length - 1; i++) {
 
-            //draw best path
-            paint.setStrokeWidth(10);
-            paint.setColor(Color.GREEN);
-            for(int i = 0; i < path.length-1; i++){
-                //draw current path
-                canvas.drawLine(cities[bestPath[i]].xPos, cities[bestPath[i]].yPos, cities[bestPath[i+1]].xPos, cities[bestPath[i+1]].yPos, paint);
+                    canvas.drawLine(cities[bestPath[i]].xPos, cities[bestPath[i]].yPos, cities[bestPath[i + 1]].xPos, cities[bestPath[i + 1]].yPos, paint);
+                }
             }
+            getHolder().unlockCanvasAndPost(canvas); //display canvas
 
             if(finished){
                 pause();
             }
-            getHolder().unlockCanvasAndPost(canvas); //display canvas
+
         }
     }
 
@@ -230,8 +252,10 @@ public class GameView extends SurfaceView implements Runnable {
 
         if(distance < bestDistance){
             bestDistance = distance;
-            bestPath = path;
+            bestPath = Arrays.copyOf(path, path.length);
         }
+
+
     }
 
     public void resume(){
