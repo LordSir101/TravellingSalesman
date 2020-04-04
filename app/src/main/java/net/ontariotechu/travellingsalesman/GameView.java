@@ -137,7 +137,7 @@ public class GameView extends SurfaceView implements Runnable {
             path = Arrays.copyOf(startArray, startArray.length + endArray.length);
             System.arraycopy(endArray, 0, path, startArray.length, endArray.length);
 
-
+            System.out.print(path[0]);
 
         }
         else{
@@ -183,13 +183,23 @@ public class GameView extends SurfaceView implements Runnable {
             canvas.drawBitmap(background, 0, 0, paint);
             canvas.drawBitmap(ffBtn.getBitmap(), ffBtn.x, ffBtn.y, paint);
 
+            paint.setColor(Color.BLUE);
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setPathEffect(null);
+            paint.setStrokeWidth(3);
+            City start = graph.cities[0];
+
+            canvas.drawRect(start.xPos- start.width/2 -1, start.yPos - start.height/2 -1,
+                    start.xPos + start.width/2 + 1, start.yPos + start.height/2 +1, paint);
+
 
             //paint.setColor(Color.RED);
             //paint.setStyle(Paint.Style.FILL);
 
             for (City city : graph.cities) {
                 //canvas.drawCircle(city.xPos, city.yPos, 20f, paint);
-                canvas.drawBitmap(city.img, city.xPos - city.width/2, city.yPos - city.width/2, paint);
+                canvas.drawBitmap(city.img, city.xPos - city.width/2, city.yPos - city.height/2, paint);
+
             }
             City[] cities = graph.cities;
 
