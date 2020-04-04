@@ -6,6 +6,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.DashPathEffect;
 import android.graphics.Paint;
+import android.view.MotionEvent;
 import android.view.SurfaceView;
 
 import androidx.core.content.res.TypedArrayUtils;
@@ -22,13 +23,16 @@ public class GameView extends SurfaceView implements Runnable {
     private boolean isPlaying = true;
     private Thread thread;
     private Graph graph;
+    private int initial;
     private Random random = new Random();
     private Paint paint;
     //private int initial, end, current, nextNode;
     private float bestDistance = Float.MAX_VALUE;
     private int[] path, bestPath = null;
     private boolean finished = false, firstIteration = true;
-    Bitmap background, initial;
+    private Button ffBtn;
+    Bitmap background, btnImg;
+    int speed = 333;
 
 
     public GameView(GameActivity activity, int screenX, int screenY, int numNodes) {
@@ -50,11 +54,18 @@ public class GameView extends SurfaceView implements Runnable {
         //scale image to fullscreen
         background = Bitmap.createScaledBitmap(background, screenX, screenY, false);
 
+        //create fast forward button
+        btnImg = BitmapFactory.decodeResource(getResources(), R.drawable.fastfwd);
+        ffBtn = new Button(btnImg.getWidth(), btnImg.getHeight(), btnImg, 0.25f);
+        ffBtn.x = screenX - ffBtn.getBitmap().getWidth() -30;
+        ffBtn.y = 30;
+
         graph = new Graph(nodes, getResources());
 
         for(int i = 0; i < nodes; i++){
-            int x = random.nextInt(screenX); //number from 0 - screenX
-            int y = random.nextInt(screenY);
+            //pick random spot that is 30 * screenRatio away from edges
+            int x = random.nextInt(screenX - 200) + 100; //number from 0 - screenX
+            int y = random.nextInt(screenY- 200)+ 100;
             graph.addCity(x, y, getResources());
             path[i] = i;
         }
@@ -62,7 +73,8 @@ public class GameView extends SurfaceView implements Runnable {
         graph.calculateMatrix();
 
         //node furthest left is initial and furthest right is end
-        setInitial();
+        //setInitial();
+        initial = path[0];
 
     }
 
@@ -84,17 +96,23 @@ public class GameView extends SurfaceView implements Runnable {
 
             //find largest i so p[i] < p[i+1]
             //if no such x, we are finished
+
+            System.out.println(path[0]);
+            if(path[0] != initial){
+                finished = true;
+                return;
+            }
             int largestI = -1;
             for (int i = 0; i < path.length - 1; i++) {
                 if (path[i] < path[i + 1]) {
                     largestI = i;
                 }
             }
-
+            /*
             if (largestI == -1) {
                 finished = true;
                 return;
-            }
+            }*/
 
             //find largest j so p[i] < p[j]
             int largestJ = -1;
@@ -119,7 +137,7 @@ public class GameView extends SurfaceView implements Runnable {
             path = Arrays.copyOf(startArray, startArray.length + endArray.length);
             System.arraycopy(endArray, 0, path, startArray.length, endArray.length);
 
-            //System.out.println(Arrays.toString(path));
+
 
         }
         else{
@@ -163,10 +181,11 @@ public class GameView extends SurfaceView implements Runnable {
             //draw background
             //canvas.drawRect(0, 0, screenX, screenY, paint);
             canvas.drawBitmap(background, 0, 0, paint);
+            canvas.drawBitmap(ffBtn.getBitmap(), ffBtn.x, ffBtn.y, paint);
 
 
-            paint.setColor(Color.RED);
-            paint.setStyle(Paint.Style.FILL);
+            //paint.setColor(Color.RED);
+            //paint.setStyle(Paint.Style.FILL);
 
             for (City city : graph.cities) {
                 //canvas.drawCircle(city.xPos, city.yPos, 20f, paint);
@@ -201,16 +220,16 @@ public class GameView extends SurfaceView implements Runnable {
             getHolder().unlockCanvasAndPost(canvas); //display canvas
 
             if(finished){
-                pause();
+                isPlaying = false;
             }
 
         }
     }
 
     public void sleep(){
-        //1000 millis / 17 millis = 60fps
+
         try {
-            Thread.sleep(333);
+            Thread.sleep(speed);
         }
         catch (InterruptedException e) {
             e.printStackTrace();
@@ -273,6 +292,27 @@ public class GameView extends SurfaceView implements Runnable {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+
+        float x = event.getX();
+        float y = event.getY();
+        if (ffBtn.getRect().contains(x, y) && event.getAction() == MotionEvent.ACTION_UP) //action up makes button less sensitive
+        {
+           if(speed == 333){
+               speed = 0;
+           }
+           else if(speed == 0){
+               speed = 1000;
+           }
+           else if(speed == 1000){
+               speed = 333;
+           }
+        }
+
+        return true;
     }
 
 }
