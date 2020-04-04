@@ -4,7 +4,7 @@ Running the app:
 
 -> Navigate to /app/release
 
--> Transfer app-release.apk to an androd device
+-> Transfer app-release.apk to an android device
 
 -> Install and run
 
