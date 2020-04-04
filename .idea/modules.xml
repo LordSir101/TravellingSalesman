@@ -4,6 +4,8 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/Traveling Salesman.iml" filepath="$PROJECT_DIR$/Traveling Salesman.iml" group="Traveling Salesman" />
       <module fileurl="file://$PROJECT_DIR$/.idea/TravellingSalesman.iml" filepath="$PROJECT_DIR$/.idea/TravellingSalesman.iml" />
+      <module fileurl="file://$PROJECT_DIR$/TravellingSalesman-Traveling Salesman.iml" filepath="$PROJECT_DIR$/TravellingSalesman-Traveling Salesman.iml" group="Traveling Salesman" />
+      <module fileurl="file://$PROJECT_DIR$/app/TravellingSalesman-app.iml" filepath="$PROJECT_DIR$/app/TravellingSalesman-app.iml" group="Traveling Salesman/app" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" group="Traveling Salesman/app" />
     </modules>
   </component>
